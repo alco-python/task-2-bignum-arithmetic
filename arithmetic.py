@@ -25,11 +25,15 @@ class Digit:
         self.d = s % self.M
         return Digit(self.M, s // self.M)
 
-        
     def minus(self, other: 'Digit'):
         s = self.d - other.d
         self.d = s % self.M
         return Digit(self.M, -(s // self.M))
+    
+    def multiply(self, other: 'Digit'):
+        s = self.d * other.d
+        self.d = s % self.M
+        return Digit(self.M, s // self.M)
     
 
 class Number:
@@ -50,8 +54,19 @@ class Number:
         out = ("-" if self.negative else "") + ".".join([str(i.d) for i in self.digits])
         return out
 
-    def __getitem__(self, key: int):
-        return self.digits[key]
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self.digits[key]
+        elif isinstance(key, slice):
+            new_digits = []
+            for i in range(self.N - 1, -1, -1):
+                if i >= key.start and i < key.stop:
+                    new_digits.insert(0, self.digits[i])
+                else:
+                    new_digits.insert(0, Digit(10))
+
+            new_number = Number(self.M, self.N, new_digits)
+            return new_number
 
     def __setitem__(self, key: int, value: Digit):
         self.digits[key] = value
@@ -106,8 +121,6 @@ class Number:
         else:
             if other.negative: return self + -other
         
-        
-        
         new_number = Number(self.M, self.N, self.digits)
 
         remainder_current = Digit(self.M)
@@ -117,34 +130,51 @@ class Number:
 
             remainder_current = new_number[i].minus(other[i])
             remainder_current.plus(new_number[i].minus(remainder_prev))
-
-        # if remainder_current:
-        #     print(f"remainder = {remainder_current}, number = {new_number}")
-        #     return -(self.get_border_num(True) - new_number)
         
         return new_number
+    
+    def __mul__(self, digit: Digit):
+        new_number = Number(self.M, self.N, self.digits)
+
+        remainder_current = Digit(self.M)
+        remainder_prev = Digit(self.M)
+        for i in range(new_number.N - 1, -1, -1):
+            remainder_prev = remainder_current
+
+            remainder_current = new_number[i].multiply(digit)
+            remainder_current.plus(new_number[i].plus(remainder_prev))
+        
+        if remainder_current:
+            return -(self.get_border_num(False) - new_number) 
+        
+        return new_number
+    
+    # def __mul__(self, other: 'Number'):
+    #     new_number = Number(self.M, self.N, self.digits)
+    #     for i in range(new_number.N - 1, -1, -1):
+
 
 
 if __name__ == "__main__":
-    n1 = Number(10, 2, [Digit(10, 0), Digit(10, 1)], False)
+    n1 = Number(10, 2, [Digit(10, 3), Digit(10, 1)], False)
     n2 = Number(10, 2, [Digit(10, 1), Digit(10, 0)], False)
     n3 = n1 - n2
     print(n1)
     print(n2)
     print(n3)
 
-    d1 = Digit(10, 5)
-    d2 = Digit(10, 8)
-    d3 = d1.minus(d2)
+    d1 = Digit(10, 9)
+    d2 = Digit(10, 4)
+    d3 = d1.multiply(d2)
     print(d3, d1)
 
-    for i1 in range(5, 10):
-        for j1 in range(0, 10):
-            n1 = Number(10, 2, [Digit(10, i1), Digit(10, j1)], False)
-            for i2 in range(5, 10):
-                for j2 in range(0, 10):
-                    n2 = Number(10, 2, [Digit(10, i2), Digit(10, j2)], False)
-                    print(f"{n1} + {n2} = {n1 + n2}")
+
+    n4 = Number(10, 2, [Digit(10, 2), Digit(10, 5)], False)
+    d4 = Digit(10, 4)
+    print(f"{n4} * {d4} = {n4 * d4}")
+    n5 = Number(10, 6, [Digit(10, 1), Digit(10, 2), Digit(10, 3), Digit(10, 4), Digit(10, 5), Digit(10, 6)])
+    print(f"n = {n5}")
+    print(f"n[2:5] = {n5[2:5]}")
 
 
 
