@@ -19,6 +19,9 @@ class Digit:
 
     def __gt__(self, other: 'Digit'):
         return self.d > other.d
+    
+    def __invert__(self):
+        return Digit(self.M, self.M - 1 - self.d)
 
     def plus(self, other: 'Digit'):
         s = self.d + other.d
@@ -37,7 +40,7 @@ class Digit:
     
 
 class Number:
-    def __init__(self, M: int = 10, N: int = 1, digits: list = [Digit], negative: bool = False):
+    def __init__(self, M: int = 10, N: int = 1, digits: list[Digit] = [], negative: bool = False):
         self.M = M
         self.N = N
         self.negative = negative if digits else False
@@ -50,18 +53,27 @@ class Number:
     def get_border_num(self, negative = False):
         return Number(self.M, self.N, [Digit(self.M, self.M - 1) for i in range(self.N)], negative)
     
+    
     def __str__(self):
         out = ("-" if self.negative else "") + ".".join([str(i.d) for i in self.digits])
         return out
+
 
     def __getitem__(self, key):
         if isinstance(key, int):
             return self.digits[key]
         elif isinstance(key, slice):
             new_digits = []
+            step_counter = 0
+            step = key.step if key.step else 1
             for i in range(self.N - 1, -1, -1):
                 if i >= key.start and i < key.stop:
-                    new_digits.insert(0, self.digits[i])
+                    if step_counter == 0:
+                        new_digits.insert(0, self.digits[i])
+                    else:
+                        new_digits.insert(0, Digit(10))
+                    step_counter += 1
+                    step_counter %= step
                 else:
                     new_digits.insert(0, Digit(10))
 
@@ -71,15 +83,43 @@ class Number:
     def __setitem__(self, key: int, value: Digit):
         self.digits[key] = value
     
+    
     def __lt__(self, other: 'Number'):
         for i in range(self.N):
             if self[i] < other[i]: return True
             if self[i] > other[i]: return False
         return False
+    
+
+    def __lshift__(self, shift: int):
+        new_number = Number(self.M, self.N, self.digits, self.negative)
+        for i in range(shift):
+            new_number.digits.pop(0)
+            new_number.digits.append(Digit(self.M))
+        return new_number
+    
+    def __rshift__(self, shift: int):
+        new_number = Number(self.M, self.N, self.digits)
+        for i in range(shift):
+            new_number.digits.pop(-1)
+            new_number.digits.insert(0, Digit(self.M))
+        return new_number
+        
+        
+
 
     def __neg__(self):
-        negative_number = Number(self.M, self.N, self.digits, not self.negative)
+        flag = False
+        for i in range(self.N - 1, -1, -1):
+            if self[i].d != 0:
+                flag = True
+                break
+        negative_number = Number(self.M, self.N, self.digits, ((not self.negative) if flag else self.negative))
         return negative_number
+    
+    def __invert__(self):
+        new_number = Number(self.M, self.N, [~d for d in self.digits], self.negative)
+        return new_number
     
     def __add__(self, other: 'Number'):
         if self.M != other.M:
@@ -133,48 +173,59 @@ class Number:
         
         return new_number
     
-    def __mul__(self, digit: Digit):
-        new_number = Number(self.M, self.N, self.digits)
+    def __mul__(self, other):
+        if isinstance(other, Digit):
+            new_number = Number(self.M, self.N, [], self.negative)
 
-        remainder_current = Digit(self.M)
-        remainder_prev = Digit(self.M)
-        for i in range(new_number.N - 1, -1, -1):
-            remainder_prev = remainder_current
+            remainder_current = Digit(self.M)
+            remainder_prev = Digit(self.M)
 
-            remainder_current = new_number[i].multiply(digit)
-            remainder_current.plus(new_number[i].plus(remainder_prev))
+            for i in range(new_number.N - 1, -1, -1):
+                remainder_prev = remainder_current
+                new_number[i].plus(self[i])
+                remainder_current = new_number[i].multiply(other)
+                remainder_current.plus(new_number[i].plus(remainder_prev))
+            
+            # print(f"remainder = {remainder_current.d % 2}")
+            new_number = -new_number if self.negative else new_number
+
+            if remainder_current.d % 2:
+                return -~new_number
+            return new_number
         
-        if remainder_current:
-            return -(self.get_border_num(False) - new_number) 
-        
-        return new_number
-    
-    # def __mul__(self, other: 'Number'):
-    #     new_number = Number(self.M, self.N, self.digits)
-    #     for i in range(new_number.N - 1, -1, -1):
+        elif isinstance(other, Number):
+            new_number = Number(self.M, max(self.N, other.N))
+            c = 0
+            for i in range(other.N - 1, -1, -1):
+                component = ((self * other[i]) << c)
+                new_number = new_number + (component if component.negative else component)
+                c += 1
+            return -new_number if self.negative else new_number
+
+
+            
 
 
 
 if __name__ == "__main__":
-    n1 = Number(10, 2, [Digit(10, 3), Digit(10, 1)], False)
-    n2 = Number(10, 2, [Digit(10, 1), Digit(10, 0)], False)
-    n3 = n1 - n2
-    print(n1)
-    print(n2)
-    print(n3)
 
-    d1 = Digit(10, 9)
-    d2 = Digit(10, 4)
-    d3 = d1.multiply(d2)
-    print(d3, d1)
-
-
-    n4 = Number(10, 2, [Digit(10, 2), Digit(10, 5)], False)
-    d4 = Digit(10, 4)
-    print(f"{n4} * {d4} = {n4 * d4}")
-    n5 = Number(10, 6, [Digit(10, 1), Digit(10, 2), Digit(10, 3), Digit(10, 4), Digit(10, 5), Digit(10, 6)])
-    print(f"n = {n5}")
-    print(f"n[2:5] = {n5[2:5]}")
+    c = 0
+    # for k in range(0, 2):
+    #     for c in range(0, 10):
+    #         n1 = Number(10, 3, [Digit(10, 3), Digit(10, 1), Digit(10, 7)], False)
+    #         n2 = Number(10, 2, [Digit(10, k), Digit(10, c)], False)
+    #         d1 = Digit(10, 4)
+    #         print(f"{n1} * {n2} = {n1 * n2}")
+    #         n3 = Number(10, 3)
+    #         for i in range(k * 10 + c):
+    #             n3 = n3 + n1
+    #         print(f"\t      {n3}")
+    n1 = Number(10, 3, [Digit(10, 3), Digit(10, 3), Digit(10, 4)], False)
+    n2 = Number(10, 3, [Digit(10, 0), Digit(10, 0), Digit(10, 4)], False)
+    d1 = Digit(10, c)
+    print(f"{n1} * {n2} = {n1 * n2}")
+    print(f"{n1} * {d1} = {n1 * d1}")
+    print(~n1)
 
 
 
