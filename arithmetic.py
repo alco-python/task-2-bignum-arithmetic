@@ -1,4 +1,4 @@
-from math import log10
+from math import floor
 
 class Digit:
     def __init__(self, M: int = 0, value: int = 0):
@@ -94,8 +94,7 @@ class Number:
     def __lshift__(self, shift: int):
         new_number = Number(self.M, self.N, self.digits, self.negative)
         for i in range(shift):
-            new_number.digits.pop(0)
-            new_number.digits.append(Digit(self.M))
+            new_number = (new_number * Digit(new_number.M, new_number.M - 1)) + new_number
         return new_number
     
     def __rshift__(self, shift: int):
@@ -175,7 +174,7 @@ class Number:
     
     def __mul__(self, other):
         if isinstance(other, Digit):
-            new_number = Number(self.M, self.N, [], self.negative)
+            new_number = Number(self.M, self.N)
 
             remainder_current = Digit(self.M)
             remainder_prev = Digit(self.M)
@@ -186,30 +185,43 @@ class Number:
                 remainder_current = new_number[i].multiply(other)
                 remainder_current.plus(new_number[i].plus(remainder_prev))
             
-            # print(f"remainder = {remainder_current.d % 2}")
+            # print(f"\tremainder = {remainder_current.d % 2}")
             new_number = -new_number if self.negative else new_number
 
             if remainder_current.d % 2:
                 return -~new_number
             return new_number
+            for i in range(other.d):
+                new_number += self
+            return new_number
+                
         
         elif isinstance(other, Number):
             new_number = Number(self.M, max(self.N, other.N))
             c = 0
+            component = Number(self.M, self.N)
             for i in range(other.N - 1, -1, -1):
                 component = ((self * other[i]) << c)
                 new_number = new_number + (component if component.negative else component)
                 c += 1
+                # print(component)
             return -new_number if self.negative else new_number
 
 
-            
 
+
+def f_alt(n: int) -> str:
+    m = (n - 7682) // 334
+    q, r = divmod(m, 6)
+    base = [-314, 20, 354, 688, -977, -643]
+    v = base[r] + 5 * q
+    print(v)
+    return f"{'-' if v < 0 else ''}{abs(v):03d}"
 
 
 if __name__ == "__main__":
 
-    c = 0
+    c = 4
     # for k in range(0, 2):
     #     for c in range(0, 10):
     #         n1 = Number(10, 3, [Digit(10, 3), Digit(10, 1), Digit(10, 7)], False)
@@ -226,6 +238,24 @@ if __name__ == "__main__":
     print(f"{n1} * {n2} = {n1 * n2}")
     print(f"{n1} * {d1} = {n1 * d1}")
     print(~n1)
+
+    
+    for i in range(3):
+        for j in range(10):
+            n2 = Number(n1.M, n1.N, [Digit(n1.M, i), Digit(n1.M, j)])
+            n3 = n1 * n2
+            print(f"{n1} * {n2} = {n3}", end = ' ')
+            # print(f"{334 * (i*10 + j)} -> {str(n3).replace('.', '')} -> {f_alt(334 * (i*10 + j))}")
+            n3 = Number(n1.M, n1.N)
+            for k in range(i * 10 + j):
+                n3 = n3 + n1
+            print(f"({n3})\n")
+
+    print("-"*64)
+
+    n1 = Number(10, 3, [Digit(10, 3), Digit(10, 3), Digit(10, 4)], False)
+    n2 = Number(10, 3, [Digit(10, 0), Digit(10, 0), Digit(10, 4)], False)
+    print(f"{n1} + {n2} = {n1 + n2}")
 
 
 
