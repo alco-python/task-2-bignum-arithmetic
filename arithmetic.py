@@ -197,23 +197,26 @@ class Number:
         if isinstance(other, Digit):
             new_number = Number(self.M, self.N)
 
-            # remainder_current = Digit(self.M)
-            # remainder_prev = Digit(self.M)
+            if not overflow_flag:
+                remainder_current = Digit(self.M)
+                remainder_prev = Digit(self.M)
 
-            # for i in range(new_number.N - 1, -1, -1):
-            #     remainder_prev = remainder_current
-            #     new_number[i].plus(self[i])
-            #     remainder_current = new_number[i].multiply(other)
-            #     remainder_current.plus(new_number[i].plus(remainder_prev))
+                for i in range(new_number.N - 1, -1, -1):
+                    remainder_prev = remainder_current
+                    new_number[i].plus(self[i])
+                    remainder_current = new_number[i].multiply(other)
+                    remainder_current.plus(new_number[i].plus(remainder_prev))
+                
+                # print(f"\tremainder = {remainder_current.d % 2}")
+                new_number = -new_number if self.negative else new_number
+
+                if remainder_current.d % 2:
+                    return -~new_number
+                
+            else:
+                for i in range(other.d):
+                    new_number += self
             
-            # # print(f"\tremainder = {remainder_current.d % 2}")
-            # new_number = -new_number if self.negative else new_number
-
-            # if remainder_current.d % 2:
-            #     return -~new_number
-            # return new_number
-            for i in range(other.d):
-                new_number += self
             return new_number
         
         elif isinstance(other, Number):
